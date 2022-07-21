@@ -5,12 +5,12 @@ import 'dart:ui';
 
 import 'package:arkademi_test/app/data/model/save_video_model.dart';
 import 'package:arkademi_test/app/data/model/video_model.dart';
+import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_downloader/flutter_downloader.dart';
 import 'package:get/get.dart';
 import 'package:http/http.dart' as http;
+import 'package:open_file/open_file.dart';
 import 'package:path_provider/path_provider.dart';
-import 'package:permission_handler/permission_handler.dart';
 import 'package:video_player/video_player.dart';
 
 class HomeController extends GetxController
@@ -35,6 +35,16 @@ class HomeController extends GetxController
 
   late VideoPlayerController videoPlayerController;
 
+  // RxBool changePlay(Curriculum cur, int index) {
+  //   if (_dataVideo.containsKey(_dataVideo["curriculum"][index]["key"])) {
+  //     print("TRUE");
+  //     return true.obs;
+  //   } else {
+  //     print("FALSE");
+  //     return false.obs;
+  //   }
+  // }
+
   void playVideo() {
     if (isPlay.isTrue) {
       videoPlayerController.play();
@@ -47,9 +57,9 @@ class HomeController extends GetxController
     update();
   }
 
-  int globalIndex(int index) {
-    return indexData.value = index;
-  }
+  // int globalIndex(int index) {
+  //   return indexData.value = index;
+  // }
 
   Future<void> getVideo(RxInt index) async {
     print(videoDataList[indexData.value].onlineVideoLink);
@@ -100,104 +110,89 @@ class HomeController extends GetxController
     update();
   }
 
-  void saveVideo(Curriculum curriculum) {
-    if (!isSaveVideo(curriculum).value) {
-      print("prev ${saveItems.length}");
-      saveItems.putIfAbsent(curriculum.key!, () {
-        Get.snackbar(
-          "Success",
-          "Save ${curriculum.title}",
-          overlayBlur: 0,
-          backgroundColor: Colors.teal,
-          colorText: Colors.white,
-        );
-        return SaveVideoModel(
-          key: curriculum.key,
-          id: curriculum.id,
-          type: curriculum.type,
-          title: curriculum.title,
-          duration: curriculum.duration,
-          content: curriculum.content,
-          status: curriculum.status,
-          onlineVideoLink: curriculum.onlineVideoLink,
-          offlineVideoLink: curriculum.offlineVideoLink,
-        );
-      });
-      print("current ${saveItems.length}");
-    } else {
-      saveItems.remove(curriculum.key);
-      print("current video ${saveItems.length}");
-      print("UnSave");
-    }
-    update();
+  // void saveVideo(Curriculum curriculum) {
+  //   if (!isSaveVideo(curriculum).value) {
+  //     print("prev ${saveItems.length}");
+  //     saveItems.putIfAbsent(curriculum.key!, () {
+  //       Get.snackbar(
+  //         "Success",
+  //         "Save ${curriculum.title}",
+  //         overlayBlur: 0,
+  //         backgroundColor: Colors.teal,
+  //         colorText: Colors.white,
+  //       );
+  //       return SaveVideoModel(
+  //         key: curriculum.key,
+  //         id: curriculum.id,
+  //         type: curriculum.type,
+  //         title: curriculum.title,
+  //         duration: curriculum.duration,
+  //         content: curriculum.content,
+  //         status: curriculum.status,
+  //         onlineVideoLink: curriculum.onlineVideoLink,
+  //         offlineVideoLink: curriculum.offlineVideoLink,
+  //       );
+  //     });
+  //     print("current ${saveItems.length}");
+  //   } else {
+  //     saveItems.remove(curriculum.key);
+  //     print("current video ${saveItems.length}");
+  //     print("UnSave");
+  //   }
+  //   update();
+  // }
+
+  // RxBool isSaveVideo(Curriculum curriculum) {
+  //   if (saveItems.containsKey(curriculum.key)) {
+  //     print("true");
+  //     return true.obs;
+  //   } else {
+  //     print("false");
+  //     return false.obs;
+  //   }
+  // }
+
+  Future openFile({required String url, String? fileName}) async {
+    final file = await downloadFile(url, fileName!);
+    if (file == null) return;
+    print("Path ${file.path}");
+
+    OpenFile.open(file.path);
   }
 
-  RxBool isSaveVideo(Curriculum curriculum) {
-    if (saveItems.containsKey(curriculum.key)) {
-      print("true");
-      return true.obs;
-    } else {
-      print("false");
-      return false.obs;
-    }
-  }
+  Future<File?> downloadFile(String url, String name) async {
+    try {
+      print("On going");
+      final appStorage = await getApplicationDocumentsDirectory();
+      final file = File("${appStorage.path}/$name");
 
-  Future downloader(String url) async {
-    var status = await Permission.storage.request();
-    if (status.isGranted) {
-      Directory? baseStorage = Platform.isIOS
-          ? await getApplicationSupportDirectory()
-          : await getExternalStorageDirectory();
-
-      //  final baseStroge = await getExternalStorageDirectory(); <-- For Android
-
-      await FlutterDownloader.enqueue(
-        url: url,
-        showNotification: true, //FOR ANDROID
-        savedDir: baseStorage!.path,
-        saveInPublicStorage: true,
-        openFileFromNotification: true,
+      final response = await Dio().get(
+        url,
+        options: Options(
+          responseType: ResponseType.bytes,
+          receiveTimeout: 0,
+        ),
       );
+
+      final raf = file.openSync(mode: FileMode.write);
+
+      raf.writeFromSync(response.data);
+      await raf.close();
+      print("DONE");
+
+      return file;
+    } catch (e) {
+      print(e.toString());
+      return null;
     }
   }
-
-  final _port = ReceivePort();
 
   @override
   void onInit() async {
-    IsolateNameServer.registerPortWithName(
-        _port.sendPort, 'downloader_send_port');
-    _port.listen((dynamic data) {
-      String id = data[0];
-      String doneDownloade = data[1];
-      DownloadTaskStatus status = data[1];
-      int progress = data[2];
-
-      if (status == DownloadTaskStatus.complete) {
-        print('DOWNLOAD DONE');
-        Get.snackbar("DONE", "Your download already done");
-        FlutterDownloader.open(taskId: doneDownloade);
-      } else if (status == DownloadTaskStatus.failed) {
-        print("ERROR");
-      } else if (status == DownloadTaskStatus.running) {
-        print("DOWNLOAD RUNNING");
-      }
-      update();
-    });
-
-    FlutterDownloader.registerCallback(downloadCallback);
     tabController = TabController(vsync: this, length: myTabs.length);
     initializeVideoPlayer(indexData);
     // getVideo(indexData);
     super.onInit();
-  }
-
-  @pragma('vm:entry-point')
-  static void downloadCallback(
-      String id, DownloadTaskStatus status, int progress) {
-    final SendPort? send =
-        IsolateNameServer.lookupPortByName('downloader_send_port');
-    send!.send([id, status, progress]);
   }
 
   @override

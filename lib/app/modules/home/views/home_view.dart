@@ -212,43 +212,56 @@ class HomeView extends GetView<HomeController> {
                                                 : Colors.white,
                                             child: Row(
                                               children: [
-                                                InkWell(
-                                                  onTap: () {
-                                                    controller.indexData.value =
-                                                        data[index].key!;
-                                                    controller.isSaveVideo(data[
-                                                        controller
-                                                            .indexData.value]);
-                                                  },
-                                                  child: data[index].title ==
-                                                              'PENGANTAR' ||
-                                                          data[index].title ==
-                                                              'PENUTUP'
-                                                      ? SizedBox()
-                                                      : ClipOval(
-                                                          child: Container(
-                                                            padding:
-                                                                EdgeInsets.all(
-                                                              5,
-                                                            ),
-                                                            color: Colors
-                                                                .grey.shade400,
-                                                            child: Icon(
-                                                              controller
-                                                                      .isSaveVideo(
-                                                                          data[
-                                                                              index])
-                                                                      .isTrue
-                                                                  ? Icons.pause
-                                                                  : Icons
-                                                                      .play_arrow,
-                                                              // Icons.play_arrow,
-                                                              size: 20,
-                                                              color:
-                                                                  Colors.white,
+                                                Obx(
+                                                  () => InkWell(
+                                                    onTap: () {
+                                                      controller
+                                                              .indexData.value =
+                                                          data[index].key!;
+                                                      // controller.isSaveVideo(
+                                                      //     data[controller
+                                                      //         .indexData
+                                                      //         .value]);
+                                                      // controller.playVideo();
+                                                      // controller.changePlay(
+                                                      //   data[controller
+                                                      //       .indexData.value],
+                                                      //   controller
+                                                      //       .indexData.value,
+                                                      // );
+                                                    },
+                                                    child: data[index].title ==
+                                                                'PENGANTAR' ||
+                                                            data[index].title ==
+                                                                'PENUTUP'
+                                                        ? SizedBox()
+                                                        : ClipOval(
+                                                            child: Container(
+                                                              padding:
+                                                                  EdgeInsets
+                                                                      .all(
+                                                                5,
+                                                              ),
+                                                              color: Colors.grey
+                                                                  .shade400,
+                                                              child: Icon(
+                                                                // controller
+                                                                //         .isSaveVideo(data[
+                                                                //             index])
+                                                                //         .isTrue
+                                                                //     ? Icons
+                                                                //         .pause
+                                                                //     : Icons
+                                                                //         .play_arrow,
+                                                                Icons
+                                                                    .play_arrow,
+                                                                size: 20,
+                                                                color: Colors
+                                                                    .white,
+                                                              ),
                                                             ),
                                                           ),
-                                                        ),
+                                                  ),
                                                 ),
                                                 SizedBox(
                                                   width: 10,
@@ -260,9 +273,9 @@ class HomeView extends GetView<HomeController> {
                                                               .indexData.value =
                                                           data[index].key!;
 
-                                                      controller.globalIndex(
-                                                          controller
-                                                              .indexData.value);
+                                                      // controller.globalIndex(
+                                                      //     controller
+                                                      //         .indexData.value);
                                                       controller.getVideo(
                                                           controller.indexData);
                                                     },
@@ -392,8 +405,13 @@ class HomeView extends GetView<HomeController> {
           child: Icon(Icons.add),
         ),
         onPressed: () {
-          controller.downloader(
-              "https://storage.googleapis.com/samplevid-bucket/offline_arsenal_westham.mp4");
+          //If video not showing up
+          //try to restart app
+          controller.openFile(
+            url:
+                "https://storage.googleapis.com/samplevid-bucket/offline_arsenal_westham.mp4",
+            fileName: "video.mp4",
+          );
         },
       ),
     );
