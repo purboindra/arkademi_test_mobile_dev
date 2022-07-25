@@ -1,6 +1,5 @@
 import 'dart:convert';
 import 'dart:io';
-import 'dart:isolate';
 import 'dart:ui';
 
 import 'package:arkademi_test/app/data/model/save_video_model.dart';
@@ -8,6 +7,7 @@ import 'package:arkademi_test/app/data/model/video_model.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:html/parser.dart';
 import 'package:http/http.dart' as http;
 import 'package:open_file/open_file.dart';
 import 'package:path_provider/path_provider.dart';
@@ -21,54 +21,94 @@ class HomeController extends GetxController
     Tab(text: 'Ikhtisar'),
     Tab(text: 'Lampiran'),
   ];
-
-  Map<int, SaveVideoModel> saveItems = {};
-
+  RxMap<int, SaveVideoModel> saveItems = <int, SaveVideoModel>{}.obs;
+  VideoPlayerController? videoCont;
+  VideoPlayerController? controllerVideo;
   var isPlay = false.obs;
-
+  RxBool isPlaying = false.obs;
+  RxBool isVideoPlaying = false.obs;
+  var isPlayingIndex = -1;
   var indexData = 0.obs;
-
   final _dataVideo = {}.obs;
   RxMap<dynamic, dynamic> get dataVideo => _dataVideo;
-
   RxList<Curriculum> videoDataList = <Curriculum>[].obs;
+  var isSelect = false.obs;
+  bool disposeVideoController = false;
+  RxBool noMute = false.obs;
 
-  late VideoPlayerController videoPlayerController;
+  String? parsedTitle;
 
-  void changePlay(int index) {
-    print(index);
+  void muteVideo() {
+    noMute.value = (controllerVideo?.value.volume ?? 0) > 0;
+    if (noMute.value) {
+      controllerVideo?.setVolume(0);
+    } else {
+      controllerVideo?.setVolume(1.0);
+    }
+    update();
   }
 
-  void playVideo() {
-    if (isPlay.isTrue) {
-      videoPlayerController.play();
-      isPlay.toggle();
-    } else {
-      videoPlayerController.pause();
-      isPlay.toggle();
+  var onUpdateControllerTime;
+  void onControllerUpdate() async {
+    if (disposeVideoController) {
+      return;
+    }
+    onUpdateControllerTime = 0;
+    final now = DateTime.now().microsecondsSinceEpoch;
+    if (onUpdateControllerTime > now) {
+      return;
     }
 
+    onUpdateControllerTime = now + 500;
+
+    controllerVideo;
+    if (controllerVideo == null) {
+      print("VIDEO DATA NULL");
+      return;
+    }
+    if (!controllerVideo!.value.isInitialized) {
+      print("controller can not initialized");
+      return;
+    }
+    final playing = controllerVideo!.value.isPlaying;
+    isPlaying.value = playing;
     update();
   }
 
-  // int globalIndex(int index) {
-  //   return indexData.value = index;
-  // }
+  void playVideo(int index) {
+    final videoPlayerController = VideoPlayerController.network(
+        videoDataList[index].onlineVideoLink != null
+            ? videoDataList[index].onlineVideoLink!
+            : "");
 
-  Future<void> getVideo(RxInt index) async {
-    print(videoDataList[indexData.value].onlineVideoLink);
-    initializeVideoPlayer(index);
+    final oldVideoController = controllerVideo;
+    controllerVideo = videoPlayerController;
+
+    update();
+    videoPlayerController.initialize().then(
+      (_) {
+        if (oldVideoController != null) {
+          oldVideoController.dispose();
+        }
+        isPlayingIndex = index;
+        videoPlayerController.addListener(onControllerUpdate);
+        videoPlayerController.play();
+        update();
+      },
+    );
     update();
   }
 
-  Future<RxList<Curriculum>> fetchCurriculumData() async {
+  Future<RxList<Curriculum>> fetchCurriculumData(int index) async {
     await fetchAllData().then((value) {
       List data = value["curriculum"];
       for (var element in data) {
         videoDataList.add(Curriculum.fromJson(element));
       }
     });
+
     update();
+
     return videoDataList;
   }
 
@@ -88,65 +128,13 @@ class HomeController extends GetxController
     return _dataVideo;
   }
 
-  Future<void> initializeVideoPlayer(RxInt index) async {
-    videoPlayerController = VideoPlayerController.network(
-        //when i use videoDataList[indexData.value].onlineVideoLink! for the data of video
-        //Its getting error
-        //The error talking about late initialized of videoPlayerController
-        //As u know, i have initialize the videoPlayerController here
-        //But still, its getting error there
-        //But, when i hardcore the data of video by directly to link of video
-        //its working
-        "https://storage.googleapis.com/samplevid-bucket/offline_arsenal_westham.mp4"
-        // videoDataList[index.value].onlineVideoLink!,
-        );
-    await Future.wait([videoPlayerController.initialize()]);
-    update();
-  }
-
-  // void saveVideo(Curriculum curriculum) {
-  //   if (!isSaveVideo(curriculum).value) {
-  //     print("prev ${saveItems.length}");
-  //     saveItems.putIfAbsent(curriculum.key!, () {
-  //       Get.snackbar(
-  //         "Success",
-  //         "Save ${curriculum.title}",
-  //         overlayBlur: 0,
-  //         backgroundColor: Colors.teal,
-  //         colorText: Colors.white,
-  //       );
-  //       return SaveVideoModel(
-  //         key: curriculum.key,
-  //         id: curriculum.id,
-  //         type: curriculum.type,
-  //         title: curriculum.title,
-  //         duration: curriculum.duration,
-  //         content: curriculum.content,
-  //         status: curriculum.status,
-  //         onlineVideoLink: curriculum.onlineVideoLink,
-  //         offlineVideoLink: curriculum.offlineVideoLink,
-  //       );
-  //     });
-  //     print("current ${saveItems.length}");
-  //   } else {
-  //     saveItems.remove(curriculum.key);
-  //     print("current video ${saveItems.length}");
-  //     print("UnSave");
-  //   }
-  //   update();
-  // }
-
-  // RxBool isSaveVideo(Curriculum curriculum) {
-  //   if (saveItems.containsKey(curriculum.key)) {
-  //     print("true");
-  //     return true.obs;
-  //   } else {
-  //     print("false");
-  //     return false.obs;
-  //   }
-  // }
-
   Future openFile({required String url, String? fileName}) async {
+    Get.snackbar(
+      "Download",
+      "Download this video, please wait untill end!",
+      backgroundColor: Colors.teal,
+      colorText: Colors.white,
+    );
     final file = await downloadFile(url, fileName!);
     if (file == null) return;
     print("Path ${file.path}");
@@ -184,16 +172,15 @@ class HomeController extends GetxController
   @override
   void onInit() async {
     tabController = TabController(vsync: this, length: myTabs.length);
-    initializeVideoPlayer(indexData);
-    // getVideo(indexData);
     super.onInit();
   }
 
   @override
   void onClose() {
     tabController.dispose();
+    controllerVideo!.pause();
+    controllerVideo!.dispose();
     IsolateNameServer.removePortNameMapping('downloader_send_port');
-    videoPlayerController.dispose();
     super.onClose();
   }
 }
