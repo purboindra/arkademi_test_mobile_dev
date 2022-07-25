@@ -6,6 +6,7 @@ import 'package:get/get.dart';
 import 'app/routes/app_pages.dart';
 
 void main() async {
+  //Use Simulator to running this project
   WidgetsFlutterBinding.ensureInitialized();
 
   await FlutterDownloader.initialize(
@@ -17,6 +18,7 @@ void main() async {
 }
 
 class MyApp extends StatelessWidget {
+  //Use Simulator to running this project
   const MyApp({Key? key}) : super(key: key);
 
   @override

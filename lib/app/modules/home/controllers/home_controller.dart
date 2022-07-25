@@ -35,15 +35,9 @@ class HomeController extends GetxController
 
   late VideoPlayerController videoPlayerController;
 
-  // RxBool changePlay(Curriculum cur, int index) {
-  //   if (_dataVideo.containsKey(_dataVideo["curriculum"][index]["key"])) {
-  //     print("TRUE");
-  //     return true.obs;
-  //   } else {
-  //     print("FALSE");
-  //     return false.obs;
-  //   }
-  // }
+  void changePlay(int index) {
+    print(index);
+  }
 
   void playVideo() {
     if (isPlay.isTrue) {

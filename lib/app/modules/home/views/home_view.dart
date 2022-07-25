@@ -130,8 +130,11 @@ class HomeView extends GetView<HomeController> {
                                                                     .value]
                                                             .onlineVideoLink !=
                                                         null
-                                                    ? VideoPlayer(controller
-                                                        .videoPlayerController)
+                                                    // ? VideoPlayer(controller
+                                                    //     .videoPlayerController)
+                                                    ? Center(
+                                                        child: Text("data"),
+                                                      )
                                                     : Center(
                                                         child: Icon(
                                                           Icons.error,
@@ -223,12 +226,10 @@ class HomeView extends GetView<HomeController> {
                                                       //         .indexData
                                                       //         .value]);
                                                       // controller.playVideo();
-                                                      // controller.changePlay(
-                                                      //   data[controller
-                                                      //       .indexData.value],
-                                                      //   controller
-                                                      //       .indexData.value,
-                                                      // );
+                                                      controller.changePlay(
+                                                        controller
+                                                            .indexData.value,
+                                                      );
                                                     },
                                                     child: data[index].title ==
                                                                 'PENGANTAR' ||
