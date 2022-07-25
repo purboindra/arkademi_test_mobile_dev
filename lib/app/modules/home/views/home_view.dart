@@ -263,11 +263,6 @@ class HomeView extends GetView<HomeController> {
   }
 
   SizedBox _videoSection(RxList<Curriculum> data) {
-    // var doc = parse(data[controller.indexData.value].title);
-    // if (doc.documentElement != null) {
-    //   String parsedString = doc.documentElement!.text;
-    //   controller.parsedTitle!.value = parsedString;
-    // }
     return SizedBox(
       height: 350,
       child: Obx(
